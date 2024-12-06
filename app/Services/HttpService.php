@@ -11,11 +11,8 @@ use GuzzleHttp\RequestOptions;
 class HttpService
 {
     public Client $httpClient;
-    protected $clientOptions = [
-        RequestOptions::HEADERS => [
-            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.5790.110 Safari/537.36',
-        ],
-    ];
+    protected array $clientOptions = [];
+    protected string $xpathSelector;
 
     /**
      * Parse OLX price vis HTTP service
@@ -23,6 +20,12 @@ class HttpService
     public function __construct()
     {
         $this->httpClient = new Client();
+        $this->clientOptions = [
+            RequestOptions::HEADERS => [
+                'User-Agent' => config('parser.user_agent'),
+            ],
+        ];
+        $this->xpathSelector = SelectorHelper::getPriceSelector('xpath');
     }
 
     /**
@@ -35,12 +38,13 @@ class HttpService
         $prices = [];
         foreach ($urls as $url) {
             if (!UrlHelper::isValid($url)) {
-                $prices[$url] = null;
+                $prices[] = [$url, config('parser.invalid_url_price_placeholder')];
                 continue;
             }
             try {
-                $prices[$url] = $this->_parsePriceUsingHttp($url);
+                $prices[] = [$url, $this->_parsePriceUsingHttp($url)];
             } catch (\Exception $e) {
+                $prices[] = [$url, config('parser.invalid_price_placeholder')];
                 logger()->error("Error for `$url`: " . $e->getMessage());
             }
         }
@@ -49,10 +53,10 @@ class HttpService
 
     /**
      * @param string $url
-     * @return float|null
+     * @return float|string
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    private function _parsePriceUsingHttp(string $url): ?float
+    private function _parsePriceUsingHttp(string $url): float|string
     {
         // synchronous request
         $response = $this->httpClient->get($url, $this->clientOptions);
@@ -63,14 +67,14 @@ class HttpService
         @$dom->loadHTML($html);
 
         $xpath = new \DOMXPath($dom);
-        $xpathSelector = SelectorHelper::getPriceSelector('xpath');
-        $nodes = $xpath->query($xpathSelector);
+        $nodes = $xpath->query($this->xpathSelector);
 
         if ($nodes->length > 0) {
             $priceText = trim($nodes->item(0)->textContent);
             return PriceHelper::convertToFloat($priceText);
         }
 
-        return null;
+        logger()->warning("No element with given selector found for url `$url`");
+        return config('parser.invalid_price_placeholder');
     }
 }

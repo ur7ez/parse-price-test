@@ -13,7 +13,7 @@ class ParseOlxPrice extends Command
      * @var string
      */
     protected $signature = 'parse:olx-price
-                            {--method=selenium : parsing method (selenium або http)}';
+                            {--M|method=http : parsing method (http (default) or selenium)}';
     /**
      * The console command description.
      * @var string
@@ -21,6 +21,8 @@ class ParseOlxPrice extends Command
     protected $description = 'Porse OLX advert price via Selenium or HTTP client';
 
     private array $urls = [
+        'https://www.dfdggryty.ua/dosdsdsd.html',
+        'https://www.olx.ua/d/uk/obyavlenie/warhIDDEZKk.html',
         'https://www.olx.ua/d/uk/obyavlenie/warhammer-40000-varhammer-abnett-inkvizitor-reyvenor-vsya-trilogiya-IDDEZKk.html',
         'https://www.olx.ua/d/uk/obyavlenie/moncler-leersie-novaya-kollektsiya-pyshneyshiy-meh-lisy-IDV0qTe.html',
         'https://www.olx.ua/d/uk/obyavlenie/bomber-ma-1-camo-rap-opium-IDVSs5d.html',
@@ -29,6 +31,7 @@ class ParseOlxPrice extends Command
 
     /**
      * Execute the console command.
+     * @throws \Throwable
      */
     public function handle()
     {
@@ -43,23 +46,14 @@ class ParseOlxPrice extends Command
             $httpService = new HttpService();
             $prices = $httpService->parsePrice($this->urls);
         } else {
-            $this->error("Unknown parsing method: $method");
-            return 1; // error code
+            $this->fail("Unknown parsing method: $method");
         }
         if (empty($prices)) {
             $this->info("Could not retrieve any prices");
             return 2; // error code
         }
         // print the results:
-        $item = 0;
-        foreach ($prices as $advertUrl => $price) {
-            ++$item;
-            if ($price) {
-                $this->info("{$item}. URL: `$advertUrl`\nPrice: {$price} UAH");
-            } else {
-                $this->error("Could not retrieve price for url `$advertUrl`");
-            }
-        }
+        $this->table(['URL', 'Price, UAH'], $prices);
         return 0;
     }
 }

@@ -35,7 +35,7 @@ class SeleniumService
 //                '--disable-extensions',
                 '--disable-images',
                 '--blink-settings=imagesEnabled=false',
-                '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.5790.110 Safari/537.36'
+                '--user-agent=' . config('parser.user_agent'),
             ]);
         $this->desiredCapabilities = DesiredCapabilities::chrome();
         $this->desiredCapabilities->setCapability(ChromeOptions::CAPABILITY, $chromeOptions);
@@ -50,7 +50,7 @@ class SeleniumService
 
         foreach ($urls as $ind => $url) {
             if (!UrlHelper::isValid($url)) {
-                $results[$url] = null;
+                $results[] = [$url, config('parser.invalid_url_price_placeholder')];
                 continue;
             }
             try {
@@ -64,15 +64,17 @@ class SeleniumService
                         )
                     );
                 } catch (\Exception $e) {
-                    logger()->info('WebDriver timed out on element presence location: ' . $e->getMessage());
+                    $results[] = [$url, config('parser.invalid_url_price_placeholder')];
+                    logger()->warning('WebDriver timed out on element presence location: ' . $e->getMessage(), ['url' => $url]);
+                    continue;
                 }
                 // find price html element
                 $priceElement = $this->_driver->findElement(WebDriverBy::cssSelector($cssSelector));
                 $priceText = $priceElement->getText();
-                $results[$url] = PriceHelper::convertToFloat($priceText);
+                $results[] = [$url, PriceHelper::convertToFloat($priceText)];
             } catch (\Exception $e) {
+                $results[] = [$url, config('parser.invalid_url_price_placeholder')];
                 logger()->error('Selenium error: ' . $e->getMessage() . ' Code: ' . $e->getCode(), ['url' => $url]);
-                $results[$url] = null;
             }
         }
         $this->_driver->quit();  // close browser sessions
@@ -82,6 +84,6 @@ class SeleniumService
 
     public function __destruct()
     {
-        $this->_driver?->quit();
+        $this->_driver->quit();
     }
 }

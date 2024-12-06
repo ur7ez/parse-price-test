@@ -41,7 +41,7 @@ class EventServiceProvider extends ServiceProvider
             $this->finished_time = microtime(true);
             $time = ($this->finished_time - $this->starting_time); // time in seconds
             // here you can store, display or log time for future use.
-            Log::info(sprintf("Command [%s] takes %01.2f minutes (%01.4f seconds).", $event->command, $time / 60, $time));
+            Log::info(sprintf("Command [%s] takes %01.2f minutes (%01.4f seconds).", $event->input, $time / 60, $time));
         });
     }
 

@@ -22,6 +22,8 @@ class PriceHelper
             $cleaned = str_replace(',', '.', $cleaned);
         }
 
-        return is_numeric($cleaned) ? (float)$cleaned : null;
+        return is_numeric($cleaned)
+            ? (float)$cleaned
+            : sprintf('%s [%s]', config('parser.unknown_price_format'), $priceText);
     }
 }

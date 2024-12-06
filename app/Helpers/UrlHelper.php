@@ -19,9 +19,9 @@ class UrlHelper
         $headers = @get_headers($url);
         if (!$headers || !str_contains($headers[0], '200')) {
             logger()->info(
-                sprintf("URL can't be reached: %s\nHeaders: %s\n",
+                sprintf("URL `%s` can't be reached. Headers: %s\n",
                     $url,
-                    is_array($headers) ? print_r($headers, true) : ''
+                    is_array($headers) ? print_r($headers, true) : $headers
                 )
             );
             return false;
