@@ -11,7 +11,7 @@ class PriceHelper
      */
     public static function convertToFloat(string $priceText): ?float
     {
-        $newPriceText = html_entity_decode($priceText, ENT_QUOTES | ENT_HTML5, 'UTF-8');  // decode from html
+        $newPriceText = html_entity_decode(trim($priceText), ENT_QUOTES | ENT_HTML5, 'UTF-8');  // decode from html
         // delete symbols except for numbers, dots and commas
         $cleaned = trim(preg_replace('/[^\d.,]/', '', $newPriceText), ',.');
 

@@ -53,6 +53,7 @@ class ParseOlxPrice extends Command
         // print the results:
         $this->info("Prices parsed successfully:");
         $this->table(['URL', 'Price, UAH'], $prices);
+        logger()->info("Ad data per url:\n" . print_r($service->getAdData(), true));  // TODO: debug
         return 0;
     }
 

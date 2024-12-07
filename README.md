@@ -1,23 +1,23 @@
-Необхідно реалізувати сервіс, що дає змогу стежити за зміною ціни оголошення на OLX:
-1. Сервіс повинен надати HTTP метод для підписки на зміну ціни. На вхід метод отримує - посилання на оголошення, email на який надсилати повідомлення.
-2. Після успішної підписки, сервіс повинен стежити за ціною оголошення і надсилати повідомлення на вказаний email.
-3. Якщо кілька користувачів підписалися на одне й те саме оголошення, сервіс не повинен зайвий раз перевіряти ціну оголошення.
+Implement a service that allows to monitor the price change of an advert on OLX:
+1. The service must provide HTTP method for subscribing to price changes. Method receives a link to the ad and an email address to which to send a message.
+2. After successful subscription, the service must monitor the price of the ad and send a message to the specified email address (in case of a price change).
+3. If several users have subscribed to the same ad, the service should not check the ad price again.
 
-Результати роботи мають включати:
-- Cхему/діаграму роботи сервісу та короткий його опис
-- Посилання на репозиторій з кодом
-- Підписка на зміну ціни
-- Відстеження змін ціни
-- Надсилання повідомлення на пошту
-- Мова програмування - PHP
+The results should include:
+- A diagram of the service and its brief description
+- A link to the code repository
+- Subscription to price changes
+- Tracking price changes
+- Sending a message to the subscriber's e-mail
+- Programming language - PHP
 
-Якщо в ході завдання зʼявилось декілька варіантів реалізації, то опишіть переваги і недоліки кожного з них. Вкажіть чому саме обрали той чи інший варіант.
+If several implementation options appeared during the task, describe the advantages and disadvantages of each of them. Indicate why you chose one or another option.
 
-Щоб отримати ціну оголошення, можна:
-- парсити web-сторінку оголошення
-- самостійно проаналізувати трафік на мобільних додатках або мобільному сайті і з'ясувати який там API для отримання інформації про оголошення
+To get the price of an ad, you can:
+- parse the ad web page
+- independently analyze the traffic on mobile applications or a mobile version of website and find out what API is uded there to get information about the ad
 
-**Ускладнення:**
-- Реалізувати повноцінний сервіс, який розв'язує поставлене завдання (сервіс має запускатися в docker-контейнері).
-- Написані тести (постарайтеся досягти покриття в 70% і більше).
-- Підтвердження email користувача.
+**Complications:**
+- Implement a full-fledged service that solves the task (the service must run in a Docker container).
+- Write tests (try to achieve 70% coverage or more).
+- User email confirmation.
