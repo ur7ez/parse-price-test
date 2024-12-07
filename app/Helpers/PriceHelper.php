@@ -24,6 +24,6 @@ class PriceHelper
 
         return is_numeric($cleaned)
             ? (float)$cleaned
-            : sprintf('%s [%s]', config('parser.unknown_price_format'), $priceText);
+            : sprintf('%s [%s]', config('parser.placeholders.wrong_format'), $priceText);
     }
 }

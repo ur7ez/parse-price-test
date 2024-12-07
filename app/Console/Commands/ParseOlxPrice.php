@@ -2,8 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Services\HttpService;
-use App\Services\SeleniumService;
+use App\Services\Contracts\ParserServiceInterface;
 use Illuminate\Console\Command;
 
 class ParseOlxPrice extends Command
@@ -18,16 +17,16 @@ class ParseOlxPrice extends Command
      * The console command description.
      * @var string
      */
-    protected $description = 'Porse OLX advert price via Selenium or HTTP client';
+    protected $description = 'Porse OLX advert prices using the specified method';
 
     private array $urls = [
-        'https://www.dfdggryty.ua/dosdsdsd.html',
-        'https://www.olx.ua/d/uk/obyavlenie/warhIDDEZKk.html',
+//        'https://www.dfdggryty.ua/dosdsdsd.html',
+//        'https://www.olx.ua/d/uk/obyavlenie/warhIDDEZKk.html',
+
         'https://www.olx.ua/d/uk/obyavlenie/warhammer-40000-varhammer-abnett-inkvizitor-reyvenor-vsya-trilogiya-IDDEZKk.html',
         'https://www.olx.ua/d/uk/obyavlenie/moncler-leersie-novaya-kollektsiya-pyshneyshiy-meh-lisy-IDV0qTe.html',
         'https://www.olx.ua/d/uk/obyavlenie/bomber-ma-1-camo-rap-opium-IDVSs5d.html',
     ];
-
 
     /**
      * Execute the console command.
@@ -35,25 +34,39 @@ class ParseOlxPrice extends Command
      */
     public function handle()
     {
-        $method = $this->option('method');  // parsing method
+        $method = $this->option('method')
+            ?? config('parser.default_method'); // use default if not provided
 
-        if ($method === 'selenium') {
-            $this->info('Parse price with Selenium...');
-            $seleniumService = new SeleniumService();
-            $prices = $seleniumService->parsePrice($this->urls);
-        } elseif ($method === 'http') {
-            $this->info('Parse with HTTP-client...');
-            $httpService = new HttpService();
-            $prices = $httpService->parsePrice($this->urls);
-        } else {
+        try {
+            $service = $this->_resolveService($method);
+        } catch (\InvalidArgumentException $e) {
             $this->fail("Unknown parsing method: $method");
         }
+
+        $this->info("Parsing prices with $method...");
+        $prices = $service->parsePrice($this->urls);
+
         if (empty($prices)) {
             $this->info("Could not retrieve any prices");
-            return 2; // error code
+            return 2;
         }
         // print the results:
+        $this->info("Prices parsed successfully:");
         $this->table(['URL', 'Price, UAH'], $prices);
         return 0;
+    }
+
+    /**
+     * @param string $method
+     * @return ParserServiceInterface
+     */
+    protected function _resolveService(string $method): ParserServiceInterface
+    {
+        $serviceClass = config("parser.methods.$method");
+        if (!$serviceClass) {
+            throw new \InvalidArgumentException("Unknown parsing method: $method");
+        }
+
+        return app($serviceClass);
     }
 }
