@@ -2,8 +2,12 @@
 
 namespace App\Console\Commands;
 
+use App\Helpers\SelectorHelper;
+use App\Mail\PriceChanged;
+use App\Models\Subscription;
 use App\Services\Contracts\ParserServiceInterface;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Mail;
 
 class ParseOlxPrice extends Command
 {
@@ -19,7 +23,7 @@ class ParseOlxPrice extends Command
      */
     protected $description = 'Porse OLX advert prices using the specified method';
 
-    private array $urls = [
+    protected array $urls = [
         'https://www.dfdggryty.ua/dosdsdsd.html',
         'https://www.olx.ua/d/uk/obyavlenie/warhIDDEZKk.html',
 
@@ -27,6 +31,13 @@ class ParseOlxPrice extends Command
         'https://www.olx.ua/d/uk/obyavlenie/moncler-leersie-novaya-kollektsiya-pyshneyshiy-meh-lisy-IDV0qTe.html',
         'https://www.olx.ua/d/uk/obyavlenie/bomber-ma-1-camo-rap-opium-IDVSs5d.html',
     ];
+
+    public function __construct(Subscription $subscription)
+    {
+        parent::__construct();
+        // Collect unique URLs
+        $this->urls = $subscription::distinct()->pluck('url')->toArray();
+    }
 
     /**
      * Execute the console command.
@@ -38,22 +49,28 @@ class ParseOlxPrice extends Command
             ?? config('parser.default_method'); // use default if not provided
 
         try {
-            $service = $this->_resolveService($method);
+            $parserService = $this->_resolveService($method);
         } catch (\InvalidArgumentException $e) {
             $this->fail("Unknown parsing method: $method");
         }
 
         $this->info("Parsing prices with $method...");
-        $prices = $service->parsePrice($this->urls);
+        // Parse prices for all unique URLs
+        $parsedPrices = $parserService->parsePrice($this->urls);
 
-        if (empty($prices)) {
+        if (empty($parsedPrices)) {
             $this->info("Could not retrieve any prices");
             return 2;
         }
+
+        // Process subscriptions
+        $this->_processSubscriptions($parserService->getAdData());
+
         // print the results:
-        $this->info("Prices parsed successfully:");
-        $this->table(['URL', 'Price, UAH'], $prices);
-        logger()->info("Ad data per url:\n" . print_r($service->getAdData(), true));  // TODO: debug
+        //$this->table(['URL', 'Price, UAH'], $parsedPrices);
+        // logger()->info("Ad data per url:\n" . print_r($parserService->getAdData(), true));
+
+        $this->info("Prices monitoring complete.");
         return 0;
     }
 
@@ -69,5 +86,37 @@ class ParseOlxPrice extends Command
         }
 
         return app($serviceClass);
+    }
+
+    private function _processSubscriptions(array $adDataPerUrl)
+    {
+        // Iterate over all subscriptions
+        Subscription::all()->each(function ($subscription) use ($adDataPerUrl) {
+            $url = $subscription->url;
+            $adData = $adDataPerUrl[$url] ?? [];
+            $currentPrice = SelectorHelper::getPriceFromAdData($adData);
+
+            if (empty($adData) || $currentPrice === null) {
+                $this->info("No price found for URL: $url");
+                return;
+            }
+
+            // Notify user if price has changed
+            if ((float)$subscription->actual_price !== (float)$currentPrice) {
+                $this->notifyUser($subscription, $currentPrice);
+            }
+
+            // Update the database
+            $subscription->last_known_price = $subscription->actual_price;
+            $subscription->actual_price = $currentPrice;
+            $subscription->save();
+        });
+    }
+
+    protected function notifyUser(Subscription $subscription, float $newPrice): void
+    {
+        // Dispatch email notification
+        Mail::to($subscription->email)
+            ->send(new PriceChanged($subscription->url, $newPrice));
     }
 }
