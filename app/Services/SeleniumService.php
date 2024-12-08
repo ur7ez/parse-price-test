@@ -54,6 +54,10 @@ class SeleniumService implements ParserServiceInterface
         $this->dataSelector = SelectorHelper::getAdDataSelector();
     }
 
+    /**
+     * @param array $urls array of urls [<string>]
+     * @return array - result as [[url, price], ]
+     */
     public function parsePrice(array $urls): array
     {
         $results = [];
@@ -98,12 +102,15 @@ class SeleniumService implements ParserServiceInterface
                 );
                 try {
                     $adData = json_decode($ldJsonContent, true, 512, JSON_THROW_ON_ERROR);
-                    $this->_adData[$url] = $adData;
-                    $price = $adData['offers']['price']
-                        ?? config('parser.placeholders.price_not_found');
+                    if (SelectorHelper::isAdDataValid($adData)) {
+                        $this->_adData[$url] = $adData;
+                        $price =  SelectorHelper::getPriceFromAdData($adData);
+                    } else {
+                        $price = config('parser.placeholders.price_not_found');
+                    }
                     $results[] = [$url, $price];
                 } catch (\JsonException $ex) {
-                    logger()->error("Error getting ad data from `$url`: " . $ex->getMessage() . ' Code: ' . $ex->getCode() . "\n Data content: $ldJsonContent");
+                    logger()->error("Error getting ad data from `$url`: " . $ex->getMessage() . "\n Data content: $ldJsonContent");
                 }
             } catch (\Exception $e) {
                 $results[] = [$url, config('parser.placeholders.invalid_url')];

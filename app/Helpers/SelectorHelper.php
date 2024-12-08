@@ -37,4 +37,15 @@ class SelectorHelper
         return self::SELECTORS['ad_data'][$type]
             ?? throw new \InvalidArgumentException("Invalid selector type: $type");
     }
+
+    public static function isAdDataValid(array $adData): bool
+    {
+        return isset($adData['offers']['price']);
+    }
+
+    public static function getPriceFromAdData(array $adData): ?int
+    {
+        return $adData['offers']['price'] ?? null;
+    }
+
 }

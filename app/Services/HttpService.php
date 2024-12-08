@@ -7,6 +7,7 @@ use App\Helpers\PriceHelper;
 use App\Helpers\SelectorHelper;
 use App\Helpers\UrlHelper;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\RequestOptions;
 
 /**
@@ -38,7 +39,6 @@ class HttpService implements ParserServiceInterface
     /**
      * @param array $urls
      * @return array
-     * @throws \GuzzleHttp\Exception\GuzzleException
      */
     public function parsePrice(array $urls): array
     {
@@ -51,7 +51,7 @@ class HttpService implements ParserServiceInterface
             }
             try {
                 $prices[] = [$url, $this->_parseUsingHttp($url)];
-            } catch (\Exception $e) {
+            } catch (\Exception|GuzzleException $e) {
                 $prices[] = [$url, config('parser.placeholders.price_not_found')];
                 logger()->error("Error for `$url`: " . $e->getMessage());
             }
@@ -82,10 +82,11 @@ class HttpService implements ParserServiceInterface
             try {
                 // store ad data
                 $adData = json_decode($ldJsonContent, true, 512, JSON_THROW_ON_ERROR);
-                $this->_adData[$url] = $adData;
-
-                return $adData['offers']['price']
-                    ?? config('parser.placeholders.price_not_found');
+                if (SelectorHelper::isAdDataValid($adData)) {
+                    $this->_adData[$url] = $adData;
+                    return SelectorHelper::getPriceFromAdData($adData);
+                }
+                return config('parser.placeholders.price_not_found');
             } catch (\JsonException $e) {
                 logger()->error("Error getting ad data from `$url`: " . $e->getMessage());
             }

@@ -20,8 +20,8 @@ class ParseOlxPrice extends Command
     protected $description = 'Porse OLX advert prices using the specified method';
 
     private array $urls = [
-//        'https://www.dfdggryty.ua/dosdsdsd.html',
-//        'https://www.olx.ua/d/uk/obyavlenie/warhIDDEZKk.html',
+        'https://www.dfdggryty.ua/dosdsdsd.html',
+        'https://www.olx.ua/d/uk/obyavlenie/warhIDDEZKk.html',
 
         'https://www.olx.ua/d/uk/obyavlenie/warhammer-40000-varhammer-abnett-inkvizitor-reyvenor-vsya-trilogiya-IDDEZKk.html',
         'https://www.olx.ua/d/uk/obyavlenie/moncler-leersie-novaya-kollektsiya-pyshneyshiy-meh-lisy-IDV0qTe.html',
