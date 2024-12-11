@@ -2,14 +2,12 @@
 
 namespace App\Mail;
 
-use App\Models\UrlPrice;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Carbon;
 
 class PriceChanged extends Mailable implements ShouldQueue
 {
@@ -18,7 +16,7 @@ class PriceChanged extends Mailable implements ShouldQueue
     /**
      * Create a new message instance.
      */
-    public function __construct(public UrlPrice $urlPrice, protected ?float $prevPrice)
+    public function __construct(protected array $priceChanges)
     {
 
     }
@@ -41,10 +39,7 @@ class PriceChanged extends Mailable implements ShouldQueue
         return new Content(
             view: 'emails.price_changed',
             with: [
-                'url' => $this->urlPrice->url,
-                'prevPrice' => $this->prevPrice,
-                'newPrice' => $this->urlPrice->price,
-                'parsedAt' => Carbon::$this->urlPrice->parsed_at,
+                'priceChanges' => $this->priceChanges,
             ]
         );
     }

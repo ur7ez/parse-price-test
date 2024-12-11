@@ -22,4 +22,9 @@ class Subscriber extends Model
     {
         return $this->hasMany(Subscription::class);
     }
+
+    public function priceNotifications(): HasMany
+    {
+        return $this->hasMany(PriceNotification::class);
+    }
 }
