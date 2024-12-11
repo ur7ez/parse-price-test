@@ -2,23 +2,22 @@
 
 namespace App\Mail;
 
-use App\Models\UrlPrice;
+use App\Models\Subscriber;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Carbon;
 
-class PriceChanged extends Mailable implements ShouldQueue
+class VerifySubscriberMail extends Mailable
 {
     use Queueable, SerializesModels;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(public UrlPrice $urlPrice, protected ?float $prevPrice)
+    public function __construct(public Subscriber $subscriber)
     {
 
     }
@@ -29,7 +28,7 @@ class PriceChanged extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'OLX Price Changed',
+            subject: 'Verify Your Subscription email',
         );
     }
 
@@ -39,12 +38,10 @@ class PriceChanged extends Mailable implements ShouldQueue
     public function content(): Content
     {
         return new Content(
-            view: 'emails.price_changed',
+            view: 'emails.verify_subscriber',
             with: [
-                'url' => $this->urlPrice->url,
-                'prevPrice' => $this->prevPrice,
-                'newPrice' => $this->urlPrice->price,
-                'parsedAt' => Carbon::$this->urlPrice->parsed_at,
+                'login' => explode('@', $this->subscriber->email)[0],
+                'verificationUrl' => route('subscriber.verify', ['token' => $this->subscriber->verification_token]),
             ]
         );
     }

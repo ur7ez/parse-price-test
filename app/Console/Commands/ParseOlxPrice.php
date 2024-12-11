@@ -4,9 +4,10 @@ namespace App\Console\Commands;
 
 use App\Helpers\SelectorHelper;
 use App\Mail\PriceChanged;
-use App\Models\Subscription;
+use App\Models\UrlPrice;
 use App\Services\Contracts\ParserServiceInterface;
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Mail;
 
 class ParseOlxPrice extends Command
@@ -23,28 +24,31 @@ class ParseOlxPrice extends Command
      */
     protected $description = 'Porse OLX advert prices using the specified method';
 
-    protected array $urls = [
-        'https://www.dfdggryty.ua/dosdsdsd.html',
-        'https://www.olx.ua/d/uk/obyavlenie/warhIDDEZKk.html',
+    protected Collection $validUrls; // store valid URL query results
+    protected array $urls = [];
 
-        'https://www.olx.ua/d/uk/obyavlenie/warhammer-40000-varhammer-abnett-inkvizitor-reyvenor-vsya-trilogiya-IDDEZKk.html',
-        'https://www.olx.ua/d/uk/obyavlenie/moncler-leersie-novaya-kollektsiya-pyshneyshiy-meh-lisy-IDV0qTe.html',
-        'https://www.olx.ua/d/uk/obyavlenie/bomber-ma-1-camo-rap-opium-IDVSs5d.html',
-    ];
-
-    public function __construct(Subscription $subscription)
+    /**
+     * @param UrlPrice $urlPrice
+     */
+    public function __construct(protected UrlPrice $urlPrice)
     {
         parent::__construct();
-        // Collect unique URLs
-        $this->urls = $subscription::distinct()->pluck('url')->toArray();
+        // collect valid URLs to be parsed
+        $this->validUrls = $this->urlPrice::validUrlsOnly()->get();
+        $this->urls = $this->validUrls->pluck('url')->toArray();
     }
 
     /**
      * Execute the console command.
+     * @return int
      * @throws \Throwable
      */
-    public function handle()
+    public function handle(): int
     {
+        if (empty($this->urls)) {
+            $this->info('No URLs to parse.');
+            return 0;
+        }
         $method = $this->option('method')
             ?? config('parser.default_method'); // use default if not provided
 
@@ -57,20 +61,13 @@ class ParseOlxPrice extends Command
         $this->info("Parsing prices with $method...");
         // Parse prices for all unique URLs
         $parsedPrices = $parserService->parsePrice($this->urls);
-
-        if (empty($parsedPrices)) {
-            $this->info("Could not retrieve any prices");
-            return 2;
-        }
+        // print the results in console:
+        //$this->table(['URL', 'Price, UAH'], $parsedPrices);
 
         // Process subscriptions
         $this->_processSubscriptions($parserService->getAdData());
 
-        // print the results:
-        //$this->table(['URL', 'Price, UAH'], $parsedPrices);
-        // logger()->info("Ad data per url:\n" . print_r($parserService->getAdData(), true));
-
-        $this->info("Prices monitoring complete.");
+        $this->info("Prices monitoring completed.");
         return 0;
     }
 
@@ -90,33 +87,51 @@ class ParseOlxPrice extends Command
 
     private function _processSubscriptions(array $adDataPerUrl)
     {
-        // Iterate over all subscriptions
-        Subscription::all()->each(function ($subscription) use ($adDataPerUrl) {
-            $url = $subscription->url;
-            $adData = $adDataPerUrl[$url] ?? [];
-            $currentPrice = SelectorHelper::getPriceFromAdData($adData);
-
-            if (empty($adData) || $currentPrice === null) {
-                $this->info("No price found for URL: $url");
-                return;
+        // Iterate over valid URLs from the query results
+        foreach ($this->validUrls as $urlPrice) {
+            /** @var UrlPrice $urlPrice */
+            $url = $urlPrice->url;
+            // Check if this URL has ad data in the response
+            if (!isset($adDataPerUrl[$url])) {
+                $this->warn("No data returned for URL: $url");
+                continue;
             }
 
+            $priceData = $adDataPerUrl[$url];
+            $currentPrice = SelectorHelper::getPriceFromAdData($priceData);
+
+            $prevPrice = $urlPrice->price;
+
+            // Update the URL price record
+            $urlPrice->update([
+                'price' => $currentPrice,
+                'is_valid' => $currentPrice !== null,
+                'parsed_at' => now(),
+                'ad_data' => $priceData,
+            ]);
             // Notify user if price has changed
-            if ((float)$subscription->actual_price !== (float)$currentPrice) {
-                $this->notifyUser($subscription, $currentPrice);
+            if ((float)$prevPrice !== (float)$currentPrice) {
+                $this->notifyUser($urlPrice, $prevPrice);
             }
-
-            // Update the database
-            $subscription->last_known_price = $subscription->actual_price;
-            $subscription->actual_price = $currentPrice;
-            $subscription->save();
-        });
+        }
     }
 
-    protected function notifyUser(Subscription $subscription, float $newPrice): void
+    /**
+     * @param UrlPrice $urlPrice
+     * @param float|null $prevPrice
+     * @return void
+     */
+    protected function notifyUser(UrlPrice $urlPrice, ?float $prevPrice): void
     {
-        // Dispatch email notification
-        Mail::to($subscription->email)
-            ->send(new PriceChanged($subscription->url, $newPrice));
+        // Dispatch email notifications with queue
+        foreach ($urlPrice->subscribers as $subscriber) {
+            try {
+                Mail::to($subscriber->email)
+                    ->queue(new PriceChanged($urlPrice, $prevPrice));
+                logger()->info("Price change notification sent to {$subscriber->email} for URL: {$urlPrice->url}");
+            } catch (\Exception $e) {
+                logger()->error("Failed to send email to {$subscriber->email} for URL: {$urlPrice->url}. Error: " . $e->getMessage());
+            }
+        }
     }
 }

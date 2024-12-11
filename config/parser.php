@@ -21,4 +21,6 @@ return [
         'price_not_found' => 'Price not found',
         'wrong_format' => 'Invalid format',
     ],
+
+    'max_url_age' => 2, // age in hours after which parsing of url repeats
 ];

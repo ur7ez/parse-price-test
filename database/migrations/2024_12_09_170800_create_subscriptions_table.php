@@ -13,13 +13,11 @@ return new class extends Migration
     {
         Schema::create('subscriptions', function (Blueprint $table) {
             $table->id();
-            $table->string('url');
-            $table->string('email');
-            $table->decimal('last_known_price', 10, 2)->nullable();
-            $table->decimal('actual_price', 10, 2)->nullable();
+            $table->foreignId('url_price_id')->constrained('url_prices')->onDelete('cascade');
+            $table->foreignId('subscriber_id')->constrained('subscribers')->onDelete('cascade');
             $table->timestamps();
 
-            $table->unique(['url', 'email']);
+            $table->unique(['url_price_id', 'subscriber_id']);
         });
     }
 
