@@ -135,6 +135,7 @@ class ParseOlxPrice extends Command
                 logger()->warning("Subscriber with ID `{$subscriberId}` not found");
                 continue;
             }
+            /** @var array $changes */
             // Prepare email content
             $emailContent = view('emails.price_changed', [
                 'priceChanges' => $changes,
