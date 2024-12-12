@@ -18,12 +18,7 @@ class UrlHelper
         // Check URL accessibility via curl
         $headers = @get_headers($url);
         if (!$headers || !str_contains($headers[0], '200')) {
-            logger()->info(
-                sprintf("URL `%s` can't be reached. Headers: %s\n",
-                    $url,
-                    is_array($headers) ? print_r($headers, true) : $headers
-                )
-            );
+            logger()->info("URL `$url` can't be reached.");
             return false;
         }
         return true;
