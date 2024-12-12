@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Models\Subscriber;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -16,7 +17,7 @@ class PriceChanged extends Mailable implements ShouldQueue
     /**
      * Create a new message instance.
      */
-    public function __construct(protected array $priceChanges)
+    public function __construct(public array $priceChanges, public string $subscriberLogin)
     {
 
     }
@@ -40,6 +41,7 @@ class PriceChanged extends Mailable implements ShouldQueue
             view: 'emails.price_changed',
             with: [
                 'priceChanges' => $this->priceChanges,
+                'subscriberLogin' => $this->subscriberLogin,
             ]
         );
     }
