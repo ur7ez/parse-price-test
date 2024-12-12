@@ -9,7 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class PriceNotification extends Model
 {
     use HasFactory;
-    protected $fillable = ['subscriber_id', 'notification_content', 'sent_at'];
+    public $timestamps = false;
+    protected $fillable = ['subscriber_id', 'notification_content', 'queued_at', 'message_id', 'sent_at'];
 
     public function subscriber(): BelongsTo
     {
