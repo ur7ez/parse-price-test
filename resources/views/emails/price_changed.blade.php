@@ -30,24 +30,24 @@
 <body>
     <h1>OLX Price Change Notification</h1>
     <br/>
-    <p>Dear {{ $subscriber->email }},</p>
+    <p>Dear {{ $subscriberLogin }},</p>
     <p>The following OLX ads have experienced price changes:</p>
     <table>
         <thead>
             <tr>
                 <th>URL</th>
-                <th>Previous Price</th>
-                <th>Current Price</th>
-                <th>Last Parsed At</th>
+                <th>Previous price</th>
+                <th>Current price</th>
+                <th>Reviewed at</th>
             </tr>
         </thead>
         <tbody>
             @foreach ($priceChanges as $change)
                 <tr>
-                    <td><a href="{{ $change['url'] }}" target="_blank" title="Click to open OLX advert">{{ $change['url'] }}</a></td>
+                    <td><a href="{{ $change['url'] }}" title="Click to open OLX advert">{{ $change['url'] }}</a></td>
                     <td>{{ $change['previous_price'] }}</td>
                     <td>{{ $change['current_price'] }}</td>
-                    <td>{{ $change['parsed_at'] }}</td>
+                    <td>{{ $change['parsed_at']->format('d-m-Y H:i') }}</td>
                 </tr>
             @endforeach
         </tbody>
