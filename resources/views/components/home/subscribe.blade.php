@@ -43,7 +43,7 @@
                                             body: JSON.stringify(this.formData),
                                         })
                                         .then(response => {
-                                            if (response.status === 200) {
+                                            if (response.ok) {
                                                 return response.json();
                                             }
                                             throw response;
@@ -56,9 +56,9 @@
                                             this.successMessage = result.message;
                                         })
                                         .catch(async (response) => {
-                                            const res = await response;
                                             if (response.status === 422) {
-                                              this.errors = res.errors;
+                                                const res = await response.json();
+                                                this.errors = res.errors;
                                             }
                                         })
                                     }
@@ -90,7 +90,7 @@
                             </template>
                         </div>
                         <div class="sm:col-span-4">
-                            <label for="urls" class="block text-sm font-medium text-gray-900">Adver URL(s) to monitor for price
+                            <label for="urls" class="block text-sm font-medium text-gray-900">OLX advert URL(s) to monitor for price
                                 changes:</label>
                             <div class="mt-2">
                                 <x-forms.textarea placeholder="Enter one URL per line" name="urls" rows="5" required x-model="formData.urls" ::class="errors.urls ? 'border-red-500 focus:border-red-500' : ''">{ old('urls') ? implode("\n", old('urls')) : '' }}</x-forms.textarea>
