@@ -7,8 +7,6 @@ use App\Mail\VerifySubscriberMail;
 use App\Models\Subscriber;
 use App\Models\Subscription;
 use App\Models\UrlPrice;
-use Carbon\Carbon;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -86,7 +84,7 @@ class SubscriptionController extends Controller
         }
 
         $subscriber->update([
-            'verified_at' => now(),  // Carbon::now(),
+            'verified_at' => now(),
             'verification_token' => null   // clear the token after verification
         ]);
 
