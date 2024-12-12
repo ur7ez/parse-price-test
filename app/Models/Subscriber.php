@@ -27,4 +27,9 @@ class Subscriber extends Model
     {
         return $this->hasMany(PriceNotification::class);
     }
+
+    public function getEmailLogin(): string
+    {
+        return explode('@', $this->email)[0];
+    }
 }
