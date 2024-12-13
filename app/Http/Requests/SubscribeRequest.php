@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\ValidEmailDomain;
 use Illuminate\Foundation\Http\FormRequest;
 
 class SubscribeRequest extends FormRequest
@@ -24,7 +25,7 @@ class SubscribeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => 'required|email',
+            'email' => ['required', 'email', new ValidEmailDomain()],
             'urls' => ['required', 'array', 'min:1', function ($attribute, $value, $fail) {
                 foreach ($value as $url) {
                     $parsedUrl = parse_url($url);
