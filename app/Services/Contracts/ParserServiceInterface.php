@@ -11,5 +11,5 @@ interface ParserServiceInterface
      * @return array
      */
     public function parsePrice(array $urls): array;
-    public function getAdData(): array;
+    public function getAdsData(): array;
 }
