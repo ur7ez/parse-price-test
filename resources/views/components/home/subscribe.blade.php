@@ -20,9 +20,10 @@
                 </div>
             @endif
             <div class="container pt-1 mt-3 mx-auto max-w-lg bg-white p-6 rounded-lg shadow-lg">
-                <form id="subscriptionForm" method="POST" class=""
+                <form id="subscriptionForm" method="POST"
                       x-data="
                                 {
+                                    loading: false,
                                     formData: {
                                         email: '',
                                         urls: '',
@@ -32,6 +33,7 @@
                                     submitForm(event) {
                                         this.successMessage = '';
                                         this.errors = {};
+                                        this.loading = true;
                                         fetch('{{ route('subscribe') }}', {
                                             method: 'POST',
                                             headers: {
@@ -61,11 +63,15 @@
                                                 this.errors = res.errors;
                                             }
                                         })
+                                        .finally(() => {
+                                            this.loading = false;
+                                        })
                                     }
                                 }
                                 "
                       x-on:submit.prevent="submitForm"
                 >
+                    @csrf
                     <template x-if="successMessage">
                         <div class="py-4 px-6 bg-green-600 text-gray-100 mb-4 rounded-md relative">
                             <!-- Notification Text -->
@@ -78,7 +84,6 @@
                             </button>
                         </div>
                     </template>
-                    @csrf
                     <div class="space-y-6">
                         <div class="sm:col-span-4">
                             <label for="email" class="block text-sm font-medium text-gray-900">Email address:</label>
@@ -86,25 +91,32 @@
                                 <x-forms.input type="email" placeholder="email for price notification" name="email" value="{{ old('email') }}" required x-model="formData.email" ::class="errors.email ? 'border-red-500 focus:border-red-500' : ''"></x-forms.input>
                             </div>
                             <template x-if="errors.email">
-                                <div x-text="errors.email[0]" class="text-red-500 rounded-md"></div>
+                                <div x-text="errors.email.join('\n')" class="mt-2 text-red-500 rounded-md text-xs whitespace-break-spaces"></div>
                             </template>
                         </div>
                         <div class="sm:col-span-4">
-                            <label for="urls" class="block text-sm font-medium text-gray-900">OLX advert URL(s) to monitor for price
-                                changes:</label>
+                            <label for="urls" class="block text-sm font-medium text-gray-900">OLX advert URL(s) to monitor for price changes:</label>
                             <div class="mt-2">
-                                <x-forms.textarea placeholder="Enter one URL per line" name="urls" rows="5" required x-model="formData.urls" ::class="errors.urls ? 'border-red-500 focus:border-red-500' : ''">{ old('urls') ? implode("\n", old('urls')) : '' }}</x-forms.textarea>
+                                <x-forms.textarea placeholder="Enter one URL per line" name="urls" rows="7" required x-model="formData.urls" ::class="errors.urls ? 'border-red-500 focus:border-red-500' : 'focus:border-primary'">{{ old('urls') ? implode("\n", old('urls')) : '' }}</x-forms.textarea>
                                 <template x-if="errors.urls">
-                                    <div x-text="errors.urls[0]" class="text-red-500 rounded-md"></div>
+                                    <div x-text="errors.urls.join('\n')" class="mt-2 text-red-500 rounded-md text-xs whitespace-break-spaces"></div>
                                 </template>
                             </div>
                         </div>
                     </div>
                     <div class="mt-6 text-right">
                         <button type="submit"
-                                class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                                class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50"
+                                :disabled="loading"
+                        >
                             Subscribe
                         </button>
+                        <!-- Loader -->
+                        <div
+                            x-show="loading"
+                            class="w-5 h-5 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin"
+                            x-cloak
+                        ></div>
                     </div>
                 </form>
             </div>
