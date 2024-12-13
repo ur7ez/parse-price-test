@@ -14,8 +14,9 @@ Route::post('/subscribe', [SubscriptionController::class, 'subscribe'])
 Route::get('/subscriber/verify/{token}', [SubscriptionController::class, 'verifyEmail'])->name('subscriber.verify');
 
 Route::get('/test-email', function () {
-    Mail::raw('This is a test email from Laravel!', function ($message) {
-        $message->to('test@example.com')->subject('Test Email');
+    $email = 'test@example.com';
+    Mail::raw('This is a test email from Laravel!', function ($message) use ($email) {
+        $message->to($email)->subject('Test Email');
     });
-    return 'Test email sent!';
+    return "Test email sent to `$email`!";
 });
