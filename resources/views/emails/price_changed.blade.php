@@ -45,8 +45,8 @@
             @foreach ($priceChanges as $change)
                 <tr>
                     <td><a href="{{ $change['url'] }}" title="Click to open OLX advert">{{ $change['url'] }}</a></td>
-                    <td>{{ $change['previous_price'] }}</td>
-                    <td>{{ $change['current_price'] }}</td>
+                    <td>{{ $change['previous_price'] ?? 'Unknown' }}</td>
+                    <td>{{ $change['current_price'] ?? 'Unknown' }}</td>
                     <td>{{ $change['parsed_at']->format('d-m-Y H:i') }}</td>
                 </tr>
             @endforeach
