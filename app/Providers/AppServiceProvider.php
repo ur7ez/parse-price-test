@@ -24,7 +24,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Queue::failing(function (JobFailed $event) {
-            // Notify admin of the failure
+            // Notify admin of the failure in queue job
             $adminEmail = config('mail.admin_email');
             try {
                 Mail::to($adminEmail)->queue(new FailedJobNotification($event));
