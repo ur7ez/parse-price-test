@@ -53,7 +53,7 @@ class ParseOlxPrice extends Command
     public function handle(): int
     {
         if (empty($this->urls)) {
-            $this->info('No URLs to parse.');
+            $this->info('No URLs ready to be parsed.');
             return 0;
         }
         $method = $this->option('method')
@@ -63,7 +63,7 @@ class ParseOlxPrice extends Command
         } catch (\InvalidArgumentException $e) {
             $this->fail("Unknown parsing method: $method");
         }
-        $this->info("Parsing prices with $method...");
+        $this->info(sprintf("Parsing prices for %d URL(s) using %s service ...", count($this->urls), strtoupper($method)));
 
         // Parse prices for all unique URLs
         $parsedPrices = $parserService->parsePrice($this->urls);
@@ -72,11 +72,11 @@ class ParseOlxPrice extends Command
         // $this->table(['URL', 'Price, UAH'], $parsedPrices);
 
         // Process subscriptions and collect data for subscribers notifications:
-        $this->_processSubscriptions($parserService->getAdData());
+        $this->_processSubscriptions($parserService->getAdsData());
 
         // send email notifications to subscribers:
         $this->notifySubscribers();
-        $this->info("Prices monitoring completed.");
+        $this->info("OLX advert prices monitoring completed. See system log for detailed info.");
         return 0;
     }
 
@@ -94,13 +94,13 @@ class ParseOlxPrice extends Command
             $url = $urlPrice->url;
             // Check if this URL has ad data in the response
             if (!isset($adDataPerUrl[$url])) {
-                $this->warn("No data returned from parser service for URL: $url");
+                $this->warn("No data returned from parser service for URL: $url. Notification skipped.");
                 // process only valid advert URLs, so
                 continue;
             }
 
-            $priceData = $adDataPerUrl[$url];
-            $currentPrice = SelectorHelper::getPriceFromAdData($priceData);
+            $priceData = $adDataPerUrl[$url];  // array or string
+            $currentPrice = is_array($priceData) ? SelectorHelper::getPriceFromAdData($priceData) : null;
             $prevPrice = $urlPrice->price;
 
             // Update the URL price record
@@ -111,7 +111,8 @@ class ParseOlxPrice extends Command
                 'ad_data' => json_encode($priceData, JSON_THROW_ON_ERROR),
             ]);
 
-            // Prepare data to notify subscribers if price has changed
+            // Prepare data to notify subscribers, only if advert price has been CHANGED
+            // Note: if a user subscribed to existing URL for which price did not change, he will not receive notification. This is correct - by subscribing to some URLs, user wants to know when for some of his adverts change price, and as a result to receive a notification.
             if ((float)$prevPrice !== (float)$currentPrice) {
                 foreach ($urlPrice->subscribers as $subscriber) {
                     $this->notifications[$subscriber->id][] = [
@@ -122,13 +123,20 @@ class ParseOlxPrice extends Command
                         'parsed_at' => $urlPrice->parsed_at,
                     ];
                 }
+            } else {
+                $this->info("No changes in price for URL `$url`. Notification skipped.");
             }
         }
     }
 
+    /**
+     * Notify subscribers if the changed prices in their subscriptions.
+     * Send emails in bulk after processing.
+     * @return void
+     */
     protected function notifySubscribers(): void
     {
-        // send emails in bulk after processing
+        $this->info(sprintf("Prepare to send notifications to %d subscriber(s).", count($this->notifications)));
         foreach ($this->notifications as $subscriberId => $changes) {
             $subscriber = Subscriber::find($subscriberId);
             if (!$subscriber) {
@@ -141,21 +149,23 @@ class ParseOlxPrice extends Command
                 'priceChanges' => $changes,
                 'subscriberLogin' => $subscriber->getEmailLogin(),
             ])->render();
-            try {
-                // queue email notification
-                Mail::to($subscriber->email)
-                    ->queue(new PriceChanged($changes, $subscriber->getEmailLogin()));
-                logger()->info("Price change notification to `{$subscriber->email}` put in queue.");
-            } catch (\Exception $e) {
-                logger()->error("Failed to queue email for subscriber `{$subscriber->email}`. Error: " . $e->getMessage());
-            }
 
             // save the notification
             $notification = PriceNotification::create([
                 'subscriber_id' => $subscriber->id,
-                'notification_content' => $emailContent,
-                'queued_at' => now(),
+                'data' => $emailContent,
+                // 'queued_at' => now(),
             ]);
+
+            try {
+                // queue email notification
+                Mail::to($subscriber->email)
+                    ->queue(new PriceChanged($changes, $subscriber->getEmailLogin(), $notification->id));
+
+                logger()->info("Price change notification to `{$subscriber->email}` put in queue.");
+            } catch (\Exception $e) {
+                logger()->error("Failed to queue email for subscriber `{$subscriber->email}`. Error: " . $e->getMessage());
+            }
 
             // update subscriptions
             $subscriber->subscriptions()
