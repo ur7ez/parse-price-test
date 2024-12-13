@@ -76,7 +76,7 @@ class ParseOlxPrice extends Command
 
         // send email notifications to subscribers:
         $this->notifySubscribers();
-        $this->info("OLX advert prices monitoring completed. See system log for detailed info.");
+        $this->info("OLX advert prices monitoring completed. See system log for possible errors.");
         return 0;
     }
 
@@ -140,7 +140,7 @@ class ParseOlxPrice extends Command
         foreach ($this->notifications as $subscriberId => $changes) {
             $subscriber = Subscriber::find($subscriberId);
             if (!$subscriber) {
-                logger()->warning("Subscriber with ID `{$subscriberId}` not found");
+                $this->warn("Subscriber with ID `{$subscriberId}` not found");
                 continue;
             }
             /** @var array $changes */
@@ -162,7 +162,7 @@ class ParseOlxPrice extends Command
                 Mail::to($subscriber->email)
                     ->queue(new PriceChanged($changes, $subscriber->getEmailLogin(), $notification->id));
 
-                logger()->info("Price change notification to `{$subscriber->email}` put in queue.");
+                $this->info("Price change notification to `{$subscriber->email}` put in queue.");
             } catch (\Exception $e) {
                 logger()->error("Failed to queue email for subscriber `{$subscriber->email}`. Error: " . $e->getMessage());
             }
