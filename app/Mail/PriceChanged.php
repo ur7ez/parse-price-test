@@ -2,13 +2,16 @@
 
 namespace App\Mail;
 
-use App\Models\Subscriber;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Mail\Events\MessageSending;
+use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Str;
 
 class PriceChanged extends Mailable implements ShouldQueue
 {
@@ -17,7 +20,7 @@ class PriceChanged extends Mailable implements ShouldQueue
     /**
      * Create a new message instance.
      */
-    public function __construct(public array $priceChanges, public string $subscriberLogin)
+    public function __construct(public array $priceChanges, public string $subscriberLogin, public int $notificationId)
     {
 
     }
@@ -42,6 +45,7 @@ class PriceChanged extends Mailable implements ShouldQueue
             with: [
                 'priceChanges' => $this->priceChanges,
                 'subscriberLogin' => $this->subscriberLogin,
+                'notification_id' => $this->notificationId, // Pass the notification ID
             ]
         );
     }
@@ -54,5 +58,17 @@ class PriceChanged extends Mailable implements ShouldQueue
     public function attachments(): array
     {
         return [];
+    }
+
+    /**
+     * @return Headers
+     */
+    public function headers(): Headers
+    {
+        $customMessageId = Str::uuid() . '@' . config('mail.domain', 'example.com');
+        return new Headers(
+            messageId: $customMessageId,
+            // text: ['X-Custom-Message-ID' => $customMessageId],
+        );
     }
 }
