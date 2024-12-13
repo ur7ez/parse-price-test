@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('price_notifications', function (Blueprint $table) {
             $table->id();
             $table->foreignId('subscriber_id')->constrained('subscribers')->cascadeOnDelete();
-            $table->text('notification_content'); // JSON or raw HTML for the email
+            $table->text('data'); // JSON or raw HTML contents for the email
             $table->timestamp('queued_at')->nullable();
             $table->string('message_id')->nullable();
             $table->timestamp('sent_at')->nullable();
