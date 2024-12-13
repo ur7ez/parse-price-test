@@ -82,11 +82,10 @@ class HttpService implements ParserServiceInterface
             try {
                 // store ad data
                 $adData = json_decode($ldJsonContent, true, 512, JSON_THROW_ON_ERROR);
-                if (SelectorHelper::isAdDataValid($adData)) {
+                if (is_array($adData) && SelectorHelper::isAdDataValid($adData)) {
                     $this->_adData[$url] = $adData;
                     return SelectorHelper::getPriceFromAdData($adData);
                 }
-                return config('parser.placeholders.price_not_found');
             } catch (\JsonException $e) {
                 logger()->error("Error getting ad data from `$url`: " . $e->getMessage());
             }
@@ -100,14 +99,15 @@ class HttpService implements ParserServiceInterface
         }*/
 
         logger()->warning("No element with given selector found for url `$url`");
+        $this->_adData[$url] = config('parser.placeholders.price_not_found');
         return config('parser.placeholders.price_not_found');
     }
 
     /**
-     * get ad page ld+json script data
-     * @return array
+     * get ld+json script data for ads pages
+     * @return array in format ['url1' => <array>|<string>, 'url2' => ...]
      */
-    public function getAdData(): array
+    public function getAdsData(): array
     {
         return $this->_adData;
     }

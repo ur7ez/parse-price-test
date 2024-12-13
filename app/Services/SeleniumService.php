@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Services\Contracts\ParserServiceInterface;
-use App\Helpers\PriceHelper;
 use App\Helpers\SelectorHelper;
 use App\Helpers\UrlHelper;
 use Facebook\WebDriver\Remote\RemoteWebDriver;
@@ -102,11 +101,12 @@ class SeleniumService implements ParserServiceInterface
                 );
                 try {
                     $adData = json_decode($ldJsonContent, true, 512, JSON_THROW_ON_ERROR);
-                    if (SelectorHelper::isAdDataValid($adData)) {
+                    if (is_array($adData) && SelectorHelper::isAdDataValid($adData)) {
                         $this->_adData[$url] = $adData;
                         $price =  SelectorHelper::getPriceFromAdData($adData);
                     } else {
                         $price = config('parser.placeholders.price_not_found');
+                        $this->_adData[$url] = $price;
                     }
                     $results[] = [$url, $price];
                 } catch (\JsonException $ex) {
@@ -126,7 +126,7 @@ class SeleniumService implements ParserServiceInterface
      * get ad page ld+json script data
      * @return array
      */
-    public function getAdData(): array
+    public function getAdsData(): array
     {
         return $this->_adData;
     }
