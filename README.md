@@ -3,6 +3,12 @@
 This project monitors price changes on OLX advertisements and sends email notifications when a price change is detected. It is built using this stack:
 [Laravel](https://laravel.com/) v.11 with [Blade templates](https://laravel.com/docs/11.x/blade#main-content), [Tailwindcss](https://tailwindcss.com/) and [AlpineJS](https://alpinejs.dev/).
 
+## General Project Flowchart
+
+Below is a flowchart illustrating the process flow of the Price Monitoring Service:
+
+![Price Monitoring Flowchart](docs/price_monitoring_flowchart.png)
+
 ## Requirements
 
 - PHP 8.1+
