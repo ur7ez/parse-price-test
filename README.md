@@ -3,9 +3,9 @@
 ## About
 
 This project monitors price changes on OLX advertisements and sends email notifications when a price change is detected. It is built using this stack:
-* [Laravel](https://laravel.com/) 11 with [Blade templates](https://laravel.com/docs/11.x/blade#main-content),
-* [Tailwindcss](https://tailwindcss.com/)
-* [AlpineJS](https://alpinejs.dev/)
+* <img src="https://i.imgur.com/pBNT1yy.png" height="30"/>[Laravel](https://laravel.com/) 11 with [Blade templates](https://laravel.com/docs/11.x/blade#main-content),
+* <img src="https://i.imgur.com/wdYXsgR.png" height="30"/>[Tailwindcss](https://tailwindcss.com/)
+* <img src="https://alpinejs.dev/alpine_long.svg" width="100"/>[AlpineJS](https://alpinejs.dev/)
 
 Although OLX do have a [public API](https://developer.olx.ua/api/doc), it only allows to deal with user's own advers, so that non-user advers can not be retrieved even with GET routes. So it was decided to parse OLX prices from data on advert web page. Luckily, every OLX advert page has `<script>` with type `ld+json`. It's loaded statically and contains all advert data in json format.
 
@@ -30,7 +30,7 @@ Below is a flowchart illustrating the process flow of the Price Monitoring Servi
 
 2. **Validate Input (Frontend)**
 
-    The input is validated on the client side to ensure correct format (e.g., valid URLs and email addresses).
+    The input is validated on the client side to ensure correct data format (e.g., valid URLs and email addresses).
 
 3. **Send Subscribe Request (Backend)**
 
@@ -38,7 +38,9 @@ Below is a flowchart illustrating the process flow of the Price Monitoring Servi
 
 4. **Save Subscription to Database**
 
-    The backend validates the data further, then saves the subscription information (URLs and email) into the database.
+    The backend validates the data further, then saves the subscription information (URLs and email) into the database. 
+   
+    For each new subscriber (new email address) a validation email is sent with a link to validate email, and user is notified back on subscription webpage about this. <span style="color:red">Only subscriptions with validated emails is processed with price monitoring service.</span>
 
 5. **Scheduled Parse Command (ParseOlxPrice)**
 
@@ -46,7 +48,9 @@ Below is a flowchart illustrating the process flow of the Price Monitoring Servi
 
 6. **Fetch Ad Prices (HTTP/Selenium)**
 
-    The command fetches the latest prices for each subscribed URL, either through HTTP requests or by using Selenium for complex pages.
+    The command fetches the latest prices for each subscribed URL, either through HTTP requests (default) or by using Selenium Server. Each adv URL is checked against its _validity_ - e.g. the adv itself could be removed at time of parsing etc. Service detects such cases and marks invalid urls, so that they won't be processed in future service runs.
+    
+    Of course, the same URL may appear in different subscriptions (different users have the same URL in their list), so the service assures that each URL will be parsed only once during service run.
 
 7. **Compare Prices With Previous Data**
 
@@ -54,7 +58,7 @@ Below is a flowchart illustrating the process flow of the Price Monitoring Servi
 
 8. **Notify Subscribers (On Price Change)**
 
-    If a price change is detected, the system prepares a notification for the subscriber, including the updated price information.
+    Only if a price change is detected, the system prepares a notification for the subscriber, including the updated price information. If a subscriber have several advers where prices changed, information of all those advers will be combined in a single notification for that subscriber (to reduce overhead and user experience).  
 
 9. **Update Database (Notification Info)**
 
@@ -117,7 +121,7 @@ Or you may set up cron job manually like this:
  while true; do php artisan schedule:run; sleep 60; done
  ```
 By default, price monitoring is scheduled with [HTTP service](app/Services/HttpService.php) parser, and will run every hour. 
-Parser logs will be output to [parse_olx_price.log](storage/logs/parse_olx_price.log) but you can change it in `routes/console.php`.
+Parser logs will be output to [parse_olx_price.log](storage/logs/parse_olx_price.log), but you can change it in `routes/console.php`.
 
 ## Testing the System
 
