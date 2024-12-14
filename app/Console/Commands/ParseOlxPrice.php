@@ -75,7 +75,11 @@ class ParseOlxPrice extends Command
         $this->_processSubscriptions($parserService->getAdsData());
 
         // send email notifications to subscribers:
-        $this->notifySubscribers();
+        if (count($this->notifications) > 0) {
+            $this->notifySubscribers();
+        } else {
+            $this->info("No price changes detected for any scheduled subscription.");
+        }
         $this->info("OLX advert prices monitoring completed. See system log for possible errors.");
         return 0;
     }
