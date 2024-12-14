@@ -1,13 +1,69 @@
 # OLX Price Monitor
 
+## About
+
 This project monitors price changes on OLX advertisements and sends email notifications when a price change is detected. It is built using this stack:
-[Laravel](https://laravel.com/) v.11 with [Blade templates](https://laravel.com/docs/11.x/blade#main-content), [Tailwindcss](https://tailwindcss.com/) and [AlpineJS](https://alpinejs.dev/).
+* [Laravel](https://laravel.com/) 11 with [Blade templates](https://laravel.com/docs/11.x/blade#main-content),
+* [Tailwindcss](https://tailwindcss.com/)
+* [AlpineJS](https://alpinejs.dev/)
+
+Although OLX do have a [public API](https://developer.olx.ua/api/doc), it only allows to deal with user's own advers, so that non-user advers can not be retrieved even with GET routes. So it was decided to parse OLX prices from data on advert web page. Luckily, every OLX advert page has `<script>` with type `ld+json`. It's loaded statically and contains all advert data in json format.
+
+For advert page parsing it was decided to implement two services - based on:
+* [Selenium Server (Grid)](https://www.selenium.dev/documentation/grid/),
+and
+* some PHP HTTP Client, I chose [Guzzle HTTP](https://docs.guzzlephp.org/en/stable/) for simplicity and for the fact that OLX price data can be retrieved from static page (no need to deal with dynamic page contents).
+
+Later on, during numerous tests I found parsing with _Selenium Server_ to be in most cases up to 3 times longer than with _GuzzleHTTP_ for the same advert pages. So I made parsing with HTTP client a default method for the service (although keeping choosing the other option possible).
 
 ## General Project Flowchart
 
 Below is a flowchart illustrating the process flow of the Price Monitoring Service:
 
 ![Price Monitoring Flowchart](docs/price_monitoring_flowchart.png)
+
+### Block Descriptions:
+
+1. **User Inputs URLs and Email (Frontend)**
+
+    The user provides the URLs of the items to monitor and their email address for notifications. These inputs are collected through the frontend form.
+
+2. **Validate Input (Frontend)**
+
+    The input is validated on the client side to ensure correct format (e.g., valid URLs and email addresses).
+
+3. **Send Subscribe Request (Backend)**
+
+    After successful frontend validation, a request is sent to the backend to save the subscription details.
+
+4. **Save Subscription to Database**
+
+    The backend validates the data further, then saves the subscription information (URLs and email) into the database.
+
+5. **Scheduled Parse Command (ParseOlxPrice)**
+
+    A scheduled command (ParseOlxPrice) runs periodically to fetch and monitor the prices of the subscribed items.
+
+6. **Fetch Ad Prices (HTTP/Selenium)**
+
+    The command fetches the latest prices for each subscribed URL, either through HTTP requests or by using Selenium for complex pages.
+
+7. **Compare Prices With Previous Data**
+
+    The fetched prices are compared with the previously stored prices in the database to detect changes.
+
+8. **Notify Subscribers (On Price Change)**
+
+    If a price change is detected, the system prepares a notification for the subscriber, including the updated price information.
+
+9. **Update Database (Notification Info)**
+
+    The database is updated with the notification details, including timestamps and other metadata for tracking.
+
+10. **Send Email Notifications**
+
+    The notification is sent to the subscriber's email using the queued mail system.
+
 
 ## Requirements
 
@@ -45,7 +101,7 @@ Email notifications are being sent with queue (`ParseOlxPrice` Command class que
 
 ## Set up Scheduler
 
-If you want to run the scheduled tasks to monitor prices periodically, you must run the Laravel scheduler.
+If you want to run the scheduled task to monitor prices periodically, you must run the Laravel scheduler.
 To run a scheduled worker locally, in new terninal window run:
 
 ```php artisan schedule:work```
@@ -60,13 +116,23 @@ Or you may set up cron job manually like this:
 ```bash
  while true; do php artisan schedule:run; sleep 60; done
  ```
+By default, price monitoring is scheduled with [HTTP service](app/Services/HttpService.php) parser, and will run every hour. 
+Parser logs will be output to [parse_olx_price.log](storage/logs/parse_olx_price.log) but you can change it in `routes/console.php`.
+
 ## Testing the System
 
-To test the OLX price monitoring manually, you can run the command:
-
-`php artisan schedule:test --name="parse:olx-price --method=http"`
-
+If you wish to test the OLX price monitoring manually, you can run the command:
+```bash
+php artisan schedule:test --name="parse:olx-price --method=http"
+```
+You still need queue worker running for this (to send notifications to subscribers).
 If everything is set up correctly, the prices will be monitored, and notifications will be sent when a price change is detected.
+If no argument passed to this command, HTTP service is used for price parsing. Alternatively, you can pass merhod argument to choose parsing with Selenium server: ` --method=selenium`.
+But before this, make sure Selenium Server is running, e.g. within Docker container, for example with this command:
+
+```bash
+docker run -d -p 4444:4444 -p 7900:7900 --shm-size="2g" selenium/standalone-chrome:latest
+```
 
 ## Usage
 
@@ -80,7 +146,7 @@ If everything is set up correctly, the prices will be monitored, and notificatio
 
 * The system will run monitoring the prices every hour (or as configured in routes/console.php). 
 * Period to trigger new price check for each adv URL is set to 2 hours by config parameter `max_url_age` in [config/parser.php](config/parser.php)
-* You can manually trigger the price monitoring by running `php artisan parse:olx-price`. By default, it uses http as method option (`--method=http`) but also `--method=selenium` option possible (slow!).
+* You can manually trigger the price monitoring by running `php artisan parse:olx-price`. By default, this command uses [HTTP service](app/Services/HttpService.php) (method option `--method=http`) but also `--method=selenium` option possible (much slower!).
 
 ## Notifications
 
