@@ -30,7 +30,7 @@ class ParseOlxPrice extends Command
     protected array $urls = [];
     /**
      * @var array $notifications
-     * [ [subscriber_id] => [ 'url_id', 'url', 'previous_price', 'current_price', 'parsed_at'] ]
+     * [ [subscriber_id] => [ 'url_id', 'url', 'previous_price', 'current_price' 'price_currency', 'parsed_at'] ]
      */
     protected array $notifications = [];
 
@@ -99,12 +99,18 @@ class ParseOlxPrice extends Command
             // Check if this URL has ad data in the response
             if (!isset($adDataPerUrl[$url])) {
                 $this->warn("No data returned from parser service for URL: $url. Notification skipped.");
-                // process only valid advert URLs, so
+                // update for wrong URLs to skip them from parsing in the next run:
+                $urlPrice->update([
+                    'price' => null,
+                    'is_valid' => false,
+                    'parsed_at' => now(),
+                ]);
                 continue;
             }
 
             $priceData = $adDataPerUrl[$url];  // array or string
             $currentPrice = is_array($priceData) ? SelectorHelper::getPriceFromAdData($priceData) : null;
+            $priceCurrency = is_array($priceData) ? SelectorHelper::getPriceCurrencyFromAdData($priceData) : null;
             $prevPrice = $urlPrice->price;
 
             // Update the URL price record
@@ -124,6 +130,7 @@ class ParseOlxPrice extends Command
                         'url' => $url,
                         'previous_price' => $prevPrice,
                         'current_price' => $currentPrice,
+                        'price_currency' => $priceCurrency,
                         'parsed_at' => $urlPrice->parsed_at,
                     ];
                 }

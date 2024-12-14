@@ -52,10 +52,10 @@ class HandleMailEvents implements ShouldQueue
             return;
         }
 
-        logger()->info($event::class . ' event triggered', [
+        /*logger()->info($event::class . ' event triggered', [
             'custom_message_id' => $this->messageId,
             'to' => $this->recipientEmails,
-        ]);
+        ]);*/
 
         if ($event instanceof MessageSending) {
             $this->handleMessageSending();

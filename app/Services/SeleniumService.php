@@ -59,16 +59,21 @@ class SeleniumService implements ParserServiceInterface
      */
     public function parsePrice(array $urls): array
     {
-        $results = [];
+        $prices = [];
 
-        foreach ($urls as $ind => $url) {
+        foreach ($urls as $url) {
             $this->_adData[$url] = null;
-            if (!UrlHelper::isValid($url)) {
-                $results[] = [$url, config('parser.placeholders.invalid_url')];
+            if (!UrlHelper::isValid($url, $response_code)) {
+                if ($response_code === 404) {
+                    $placeholder404 = config('parser.placeholders.adv_not_found');
+                    $this->_adData[$url] = $placeholder404;
+                    $prices[] = [$url, $placeholder404];
+                } else {
+                    $prices[] = [$url, config('parser.placeholders.invalid_url')];
+                }
                 continue;
             }
             try {
-                // if ($ind > 0) sleep(2);  // pause between concurrent requests
                 $this->_driver->get($url);
                 $wait = new WebDriverWait(
                     $this->_driver,
@@ -82,7 +87,7 @@ class SeleniumService implements ParserServiceInterface
                         )
                     );
                 } catch (\Exception $e) {
-                    $results[] = [$url, config('parser.placeholders.invalid_url')];
+                    $prices[] = [$url, config('parser.placeholders.invalid_url')];
                     logger()->warning('WebDriver timed out on element presence location: ' . $e->getMessage(), ['url' => $url]);
                     continue;
                 }
@@ -108,18 +113,18 @@ class SeleniumService implements ParserServiceInterface
                         $price = config('parser.placeholders.price_not_found');
                         $this->_adData[$url] = $price;
                     }
-                    $results[] = [$url, $price];
+                    $prices[] = [$url, $price];
                 } catch (\JsonException $ex) {
                     logger()->error("Error getting ad data from `$url`: " . $ex->getMessage() . "\n Data content: $ldJsonContent");
                 }
             } catch (\Exception $e) {
-                $results[] = [$url, config('parser.placeholders.invalid_url')];
+                $prices[] = [$url, config('parser.placeholders.invalid_url')];
                 logger()->error('Selenium error: ' . $e->getMessage() . ' Code: ' . $e->getCode(), ['url' => $url]);
             }
         }
         $this->_driver->quit();  // close browser sessions
 
-        return $results;
+        return $prices;
     }
 
     /**

@@ -21,54 +21,7 @@
             @endif
             <div class="container pt-1 mt-3 mx-auto max-w-lg bg-white p-6 rounded-lg shadow-lg">
                 <form id="subscriptionForm" method="POST"
-                      x-data="
-                                {
-                                    loading: false,
-                                    formData: {
-                                        email: '',
-                                        urls: '',
-                                    },
-                                    errors: {},
-                                    successMessage: '',
-                                    submitForm(event) {
-                                        this.successMessage = '';
-                                        this.errors = {};
-                                        this.loading = true;
-                                        fetch('{{ route('subscribe') }}', {
-                                            method: 'POST',
-                                            headers: {
-                                                'Content-Type': 'application/json',
-                                                'Accept': 'application/json',
-                                                'X-Requested-With': 'XMLHttpRequest',
-                                                'X-CSRF-TOKEN': document.querySelector(`meta[name='csrf-token']`).getAttribute('content')
-                                            },
-                                            body: JSON.stringify(this.formData),
-                                        })
-                                        .then(response => {
-                                            if (response.ok) {
-                                                return response.json();
-                                            }
-                                            throw response;
-                                        })
-                                        .then(result => {
-                                            this.formData = {
-                                              email: '',
-                                              urls: '',
-                                            };
-                                            this.successMessage = result.message;
-                                        })
-                                        .catch(async (response) => {
-                                            if (response.status === 422) {
-                                                const res = await response.json();
-                                                this.errors = res.errors;
-                                            }
-                                        })
-                                        .finally(() => {
-                                            this.loading = false;
-                                        })
-                                    }
-                                }
-                                "
+                      x-data="formHandler()"
                       x-on:submit.prevent="submitForm"
                 >
                     @csrf
@@ -118,6 +71,52 @@
                             x-cloak
                         ></div>
                     </div>
+                    <script>
+                        function formHandler() {
+                            return {
+                                loading: false,
+                                formData: {
+                                    email: '',
+                                    urls: '',
+                                },
+                                errors: {},
+                                successMessage: '',
+                                async submitForm() {
+                                    this.successMessage = '';
+                                    this.errors = {};
+                                    this.loading = true;
+
+                                    try {
+                                        const response = await fetch('{{ route('subscribe') }}', {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                'Accept': 'application/json',
+                                                'X-Requested-With': 'XMLHttpRequest',
+                                                'X-CSRF-TOKEN': document.querySelector(`meta[name='csrf-token']`).getAttribute('content'),
+                                            },
+                                            body: JSON.stringify(this.formData),
+                                        });
+
+                                        if (!response.ok) {
+                                            throw response;
+                                        }
+
+                                        const result = await response.json();
+                                        this.formData = { email: '', urls: '' };
+                                        this.successMessage = result.message;
+                                    } catch (response) {
+                                        if (response.status === 422) {
+                                            const res = await response.json();
+                                            this.errors = res.errors;
+                                        }
+                                    } finally {
+                                        this.loading = false;
+                                    }
+                                },
+                            };
+                        }
+                    </script>
                 </form>
             </div>
         </div>

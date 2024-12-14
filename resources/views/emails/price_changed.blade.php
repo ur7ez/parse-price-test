@@ -38,15 +38,17 @@
                 <th>URL</th>
                 <th>Previous price</th>
                 <th>Current price</th>
+                <th>Currency</th>
                 <th>Reviewed at</th>
             </tr>
         </thead>
         <tbody>
             @foreach ($priceChanges as $change)
                 <tr>
-                    <td><a href="{{ $change['url'] }}" title="Click to open OLX advert">{{ $change['url'] }}</a></td>
+                    <td><a href="{{ $change['url'] }}" title="Click to open OLX advert">.../{{ basename($change['url']) }}</a></td>
                     <td>{{ $change['previous_price'] ?? 'Unknown' }}</td>
-                    <td>{{ $change['current_price'] ?? 'Unknown' }}</td>
+                    <td>{{ $change['current_price'] ?? 'Removed' }}</td>
+                    <td>{{ $change['price_currency'] ?? 'N/A' }}</td>
                     <td>{{ $change['parsed_at']->format('d-m-Y H:i') }}</td>
                 </tr>
             @endforeach

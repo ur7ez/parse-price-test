@@ -18,6 +18,7 @@ return [
 
     'placeholders' => [
         'invalid_url' => 'URL Error',
+        'adv_not_found' => 'Adv removed',
         'price_not_found' => 'Price not found',
         'wrong_format' => 'Invalid format',
     ],

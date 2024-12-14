@@ -48,4 +48,9 @@ class SelectorHelper
         return $adData['offers']['price'] ?? null;
     }
 
+    public static function getPriceCurrencyFromAdData(array $adData): string
+    {
+        return $adData['offers']['priceCurrency'] ?? 'N/A';
+    }
+
 }

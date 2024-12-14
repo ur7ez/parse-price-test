@@ -45,12 +45,19 @@ class HttpService implements ParserServiceInterface
         $prices = [];
         foreach ($urls as $url) {
             $this->_adData[$url] = null;
-            if (!UrlHelper::isValid($url)) {
-                $prices[] = [$url, config('parser.placeholders.invalid_url')];
+            if (!UrlHelper::isValid($url, $response_code)) {
+                if ($response_code === 404) {
+                    $placeholder404 = config('parser.placeholders.adv_not_found');
+                    $this->_adData[$url] = $placeholder404;
+                    $prices[] = [$url, $placeholder404];
+                } else {
+                    $prices[] = [$url, config('parser.placeholders.invalid_url')];
+                }
                 continue;
             }
             try {
-                $prices[] = [$url, $this->_parseUsingHttp($url)];
+                [$this->_adData[$url], $price] = $this->_parseUsingHttp($url);
+                $prices[] = [$url, $price];
             } catch (\Exception|GuzzleException $e) {
                 $prices[] = [$url, config('parser.placeholders.price_not_found')];
                 logger()->error("Error for `$url`: " . $e->getMessage());
@@ -61,11 +68,11 @@ class HttpService implements ParserServiceInterface
 
     /**
      * @param string $url
-     * @return float|string
+     * @return array <[float|string]>
      * @throws \GuzzleHttp\Exception\GuzzleException
      * @throws \JsonException
      */
-    private function _parseUsingHttp(string $url): float|string
+    private function _parseUsingHttp(string $url): array
     {
         $response = $this->httpClient->get($url, $this->clientOptions);
         // get HTML content:
@@ -83,8 +90,7 @@ class HttpService implements ParserServiceInterface
                 // store ad data
                 $adData = json_decode($ldJsonContent, true, 512, JSON_THROW_ON_ERROR);
                 if (is_array($adData) && SelectorHelper::isAdDataValid($adData)) {
-                    $this->_adData[$url] = $adData;
-                    return SelectorHelper::getPriceFromAdData($adData);
+                    return [$adData, SelectorHelper::getPriceFromAdData($adData)];
                 }
             } catch (\JsonException $e) {
                 logger()->error("Error getting ad data from `$url`: " . $e->getMessage());
@@ -99,8 +105,8 @@ class HttpService implements ParserServiceInterface
         }*/
 
         logger()->warning("No element with given selector found for url `$url`");
-        $this->_adData[$url] = config('parser.placeholders.price_not_found');
-        return config('parser.placeholders.price_not_found');
+        $toReturn = config('parser.placeholders.price_not_found');
+        return [$toReturn, $toReturn];
     }
 
     /**
