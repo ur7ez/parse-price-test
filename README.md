@@ -157,6 +157,12 @@ docker run -d -p 4444:4444 -p 7900:7900 --shm-size="2g" selenium/standalone-chro
 The application will send email notifications when the price of a monitored ad changes. The email contains the old and new prices along with the URL of the ad.
 
 
+## TODO List
+
+This features from [complications list](docs/original_task.md#complications) are not implemented as yet:
+* make a full-fledged service that run in Docker container
+* make PHPUnit tests to cover >70% of code
+
 
 ## _Original Task Description_
 
